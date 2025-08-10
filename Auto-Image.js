@@ -302,42 +302,44 @@
 
   const WPlaceService = {
     async paintPixelInRegion(regionX, regionY, pixelX, pixelY, color) {
-      try {
-        const body = {
-          coords: [pixelX, pixelY],
-          colors: [color]
-        };
-        const res = await fetch(`http://127.0.0.1:5000/s0/pixel/${regionX}/${regionY}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-          credentials: 'include',
-          body: JSON.stringify(body)
-        });
+  try {
+    const body = {
+      coords: [pixelX, pixelY],
+      colors: [color]
+    };
+    const res = await fetch(`http://127.0.0.1:5000/s0/pixel/${regionX}/${regionY}`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'text/plain;charset=UTF-8',
+        'X-Cookie': document.cookie
+      },
+      body: JSON.stringify(body)
+    });
 
-        if (res.ok) {
-          const data = await res.json();
-          return data?.painted === 1;
-        }
-        return false;
-      } catch {
-        return false;
-      }
-    },
+    if (res.ok) {
+      const data = await res.json();
+      return data?.painted === 1;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+},
     
     async getCharges() {
-      try {
-        const res = await fetch('http://127.0.0.1:5000/me', { 
-          credentials: 'include' 
-        });
-        const data = await res.json();
-        return { 
-          charges: data.charges?.count || 0, 
-          cooldown: data.charges?.cooldownMs || CONFIG.COOLDOWN_DEFAULT 
-        };
-      } catch {
-        return { charges: 0, cooldown: CONFIG.COOLDOWN_DEFAULT };
-      }
-    }
+  try {
+    const res = await fetch('http://127.0.0.1:5000/me', { 
+      headers: { 'X-Cookie': document.cookie }
+    });
+    const data = await res.json();
+    return { 
+      charges: data.charges?.count || 0, 
+      cooldown: data.charges?.cooldownMs || CONFIG.COOLDOWN_DEFAULT 
+    };
+  } catch {
+    return { charges: 0, cooldown: CONFIG.COOLDOWN_DEFAULT };
+  }
+}
   };
 
   
