@@ -302,46 +302,31 @@
 
   const WPlaceService = {
     async paintPixelInRegion(regionX, regionY, pixelX, pixelY, color) {
-      let token = '';
-      for (let attempt = 0; attempt < 2; attempt++) {
-        try {
-          const body = {
-            coords: [pixelX, pixelY],
-            colors: [color]
-          };
-          if (token) {
-            body['cf-turnstile-response'] = token;
-          }
-          const res = await fetch(`https://backend.wplace.live/s0/pixel/${regionX}/${regionY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-            credentials: 'include',
-            body: JSON.stringify(body)
-          });
+      try {
+        const body = {
+          coords: [pixelX, pixelY],
+          colors: [color]
+        };
+        const res = await fetch(`http://127.0.0.1:5000/s0/pixel/${regionX}/${regionY}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+          credentials: 'include',
+          body: JSON.stringify(body)
+        });
 
-          if (res.ok) {
-            const data = await res.json();
-            return data?.painted === 1;
-          } else if (attempt === 0) {
-            // Assumir que falha é por CAPTCHA, resolver
-            token = await solveTurnstile();
-          } else {
-            return false;
-          }
-        } catch {
-          if (attempt === 0) {
-            token = await solveTurnstile();
-          } else {
-            return false;
-          }
+        if (res.ok) {
+          const data = await res.json();
+          return data?.painted === 1;
         }
+        return false;
+      } catch {
+        return false;
       }
-      return false;
     },
     
     async getCharges() {
       try {
-        const res = await fetch('https://backend.wplace.live/me', { 
+        const res = await fetch('http://127.0.0.1:5000/me', { 
           credentials: 'include' 
         });
         const data = await res.json();
@@ -355,37 +340,7 @@
     }
   };
 
-  async function solveTurnstile() {
-    // Função para resolver Cloudflare Turnstile usando 2Captcha
-    const createTask = await fetch('https://2captcha.com/in.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        key: CONFIG.CAPTCHA_API_KEY,
-        method: 'turnstile',
-        sitekey: CONFIG.SITE_KEY,
-        pageurl: 'https://wplace.live',
-        json: 1
-      })
-    });
-    const taskData = await createTask.json();
-    if (taskData.status !== 1) throw new Error('Erro ao criar tarefa de CAPTCHA');
-    const taskId = taskData.request;
-
-    let result;
-    while (true) {
-      await new Promise(resolve => setTimeout(resolve, 5000));
-      const poll = await fetch(`https://2captcha.com/res.php?key=${CONFIG.CAPTCHA_API_KEY}&action=get&id=${taskId}&json=1`);
-      const pollData = await poll.json();
-      if (pollData.status === 1) {
-        result = pollData.request;
-        break;
-      } else if (pollData.request !== 'CAPCHA_NOT_READY') {
-        throw new Error('Erro ao obter resultado do CAPTCHA');
-      }
-    }
-    return result;
-  }
+  
 
   class ImageProcessor {
     constructor(imageSrc) {
